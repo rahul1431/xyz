@@ -61,9 +61,28 @@ See `.env.example` for all options.
 Saathi is an installable Progressive Web App: opened from a phone it can be
 added to the home screen and runs full-screen like a native app. The app
 still runs on a server — your phone is the screen; the database, accounts,
-and AI calls live wherever the app is hosted. Two ways to set that up:
+and AI calls live wherever the app is hosted. Three ways to set that up:
 
-### Option A — free, works anywhere: Vercel + Groq + Turso
+### Option A (recommended) — no usage caps, works anywhere: your PC + Tailscale
+
+Your PC runs the app and the AI (Ollama); [Tailscale](https://tailscale.com)
+(free for personal use) creates a private encrypted network between your own
+devices so your phone can reach the app from anywhere — no cloud AI vendor,
+no usage caps, conversations never leave your machine.
+
+1. Install Tailscale on your PC and phone (same account on both) —
+   [tailscale.com/download](https://tailscale.com/download).
+2. On the PC, start the app (`npm run build && npm run start`) and Ollama.
+3. Expose the app inside your tailnet with HTTPS:
+   `tailscale serve --bg 3000`
+   — it prints an address like `https://your-pc.tailXXXX.ts.net`.
+4. Open that address on your phone → browser menu → **Add to Home Screen**.
+   Because it's HTTPS, the full standalone-app install works.
+
+Only devices signed in to *your* Tailscale account can reach it. The one
+tradeoff: the PC has to be on (and running the app) for the app to work.
+
+### Option B — free cloud, works even with your PC off: Vercel + Groq + Turso
 
 1. Push this repo to GitHub and import it at [vercel.com](https://vercel.com)
    (free tier).
@@ -76,8 +95,10 @@ and AI calls live wherever the app is hosted. Two ways to set that up:
 
 Note: on Vercel the filesystem is ephemeral, so chat file uploads need object
 storage (e.g. Vercel Blob / S3) — image *search* still works out of the box.
+Free tiers cap daily usage (Groq: requests/day; Vercel: bandwidth/compute;
+Turso: storage) — fine for personal chatting, but they are real limits.
 
-### Option B — fully private: your PC hosts it, phone connects over WiFi
+### Option C — simplest, home WiFi only: your PC + local network
 
 Run the app and Ollama on your computer, then on the same WiFi open
 `http://<your-pc-ip>:3000` from the phone (start dev with
