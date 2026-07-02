@@ -50,11 +50,42 @@ ollama serve
 To use a cloud provider instead, set in `.env`:
 
 ```
-AI_PROVIDER=openai        # or anthropic
-OPENAI_API_KEY=sk-...
+AI_PROVIDER=groq          # free tier! or: openrouter / openai / anthropic
+GROQ_API_KEY=gsk_...      # free key from https://console.groq.com
 ```
 
 See `.env.example` for all options.
+
+## Use it as a mobile app (PWA)
+
+Saathi is an installable Progressive Web App: opened from a phone it can be
+added to the home screen and runs full-screen like a native app. The app
+still runs on a server — your phone is the screen; the database, accounts,
+and AI calls live wherever the app is hosted. Two ways to set that up:
+
+### Option A — free, works anywhere: Vercel + Groq + Turso
+
+1. Push this repo to GitHub and import it at [vercel.com](https://vercel.com)
+   (free tier).
+2. Create a free SQLite database at [turso.tech](https://turso.tech) and set
+   `DATABASE_URL` + `DATABASE_AUTH_TOKEN` in Vercel's env settings.
+3. Get a free AI key at [console.groq.com](https://console.groq.com) and set
+   `AI_PROVIDER=groq` + `GROQ_API_KEY`. Also set `AUTH_SECRET`.
+4. Open the deployed URL on your phone → browser menu → **Add to Home
+   Screen** → it installs as the Saathi app.
+
+Note: on Vercel the filesystem is ephemeral, so chat file uploads need object
+storage (e.g. Vercel Blob / S3) — image *search* still works out of the box.
+
+### Option B — fully private: your PC hosts it, phone connects over WiFi
+
+Run the app and Ollama on your computer, then on the same WiFi open
+`http://<your-pc-ip>:3000` from the phone (start dev with
+`npm run dev -- -H 0.0.0.0` so the phone can reach it). Everything stays on
+your machine with no accounts or keys. Caveat: browsers only offer the
+full-screen **install** experience over HTTPS, so on a plain local address
+you'll chat through the browser tab (or a home-screen shortcut) instead of
+the installed app.
 
 ## Tech stack
 

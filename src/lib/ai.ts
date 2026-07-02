@@ -20,8 +20,8 @@ export async function* streamChatCompletion(
 
   if (provider === "ollama") {
     yield* streamOllama(history, systemPrompt);
-  } else if (provider === "openai") {
-    yield* streamOpenAI(history, systemPrompt);
+  } else if (provider in OPENAI_COMPATIBLE) {
+    yield* streamOpenAICompatible(provider, history, systemPrompt);
   } else if (provider === "anthropic") {
     yield* streamAnthropic(history, systemPrompt);
   } else {
@@ -92,16 +92,43 @@ async function* streamOllama(
   }
 }
 
-// --- OpenAI (optional, requires OPENAI_API_KEY) ---
-async function* streamOpenAI(
+// --- OpenAI-compatible APIs (OpenAI, plus Groq/OpenRouter free tiers) ---
+const OPENAI_COMPATIBLE: Record<
+  string,
+  { baseUrl: string; keyEnv: string; modelEnv: string; defaultModel: string }
+> = {
+  openai: {
+    baseUrl: "https://api.openai.com/v1",
+    keyEnv: "OPENAI_API_KEY",
+    modelEnv: "OPENAI_MODEL",
+    defaultModel: "gpt-4o-mini",
+  },
+  groq: {
+    baseUrl: "https://api.groq.com/openai/v1",
+    keyEnv: "GROQ_API_KEY",
+    modelEnv: "GROQ_MODEL",
+    defaultModel: "llama-3.3-70b-versatile",
+  },
+  openrouter: {
+    baseUrl: "https://openrouter.ai/api/v1",
+    keyEnv: "OPENROUTER_API_KEY",
+    modelEnv: "OPENROUTER_MODEL",
+    defaultModel: "meta-llama/llama-3.3-70b-instruct:free",
+  },
+};
+
+async function* streamOpenAICompatible(
+  provider: string,
   history: ChatMessage[],
   systemPrompt: string,
 ): AsyncGenerator<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
-  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  const cfg = OPENAI_COMPATIBLE[provider];
+  const apiKey = process.env[cfg.keyEnv];
+  if (!apiKey) throw new Error(`${cfg.keyEnv} is not set`);
+  const model = process.env[cfg.modelEnv] ?? cfg.defaultModel;
+  const baseUrl = process.env.OPENAI_BASE_URL ?? cfg.baseUrl;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -116,7 +143,7 @@ async function* streamOpenAI(
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
-    throw new Error(`OpenAI request failed (${res.status}): ${text}`);
+    throw new Error(`${provider} request failed (${res.status}): ${text}`);
   }
 
   yield* readSseDeltas(res.body, (json) => {
